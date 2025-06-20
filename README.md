@@ -1,9 +1,9 @@
 # Order Management System – Assignment
 
-## 👤 Author
+##  Author
 **Jaswanth Chilakalapudi**
 
-## 📌 Overview
+##  Overview
 
 This project implements a basic **Order Management System** that:
 - Accepts order requests from upstream systems.

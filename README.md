@@ -3,47 +3,57 @@
 ## 👤 Author
 **Jaswanth Chilakalapudi**
 
----
+## 📌 Overview
 
-## 📌 Assumptions Made
-- The order window time is in **IST (local system time)**.
-- Incoming orders are received through an already-implemented upstream system.
-- Only `tick()` is expected to be called once every second externally.
-- Order queue is thread-safe via `std::mutex`.
-- No external libraries or frameworks are used.
-- Order responses always arrive after the order has been sent.
-- Order `Modify` and `Cancel` are only applicable to queued (not yet sent) orders.
+This project implements a basic **Order Management System** that:
+- Accepts order requests from upstream systems.
+- Sends orders to exchange within a configurable time window.
+- Enforces throttling (X orders/sec).
+- Queues excess orders for future sending.
+- Supports Modify/Cancel operations on queued orders.
+- Logs response latency from the exchange.
 
----
-
-## 🧠 Design Decisions
-
-### ✅ Time Window Handling
-- Logon is sent automatically at the start of the trading window.
-- Logout is sent at the end of the window.
-- All orders outside this window are rejected.
-
-### ✅ Order Throttling
-- Only `N` orders per second are allowed to be sent (`maxOrdersPerSecond`).
-- Additional orders are queued using FIFO order.
-- `tick()` checks and sends pending orders every second.
-
-### ✅ Modify & Cancel Handling
-- If a `Modify` request is received for an existing queued order, it updates the price and quantity.
-- If a `Cancel` request is received, the order is removed from the queue.
-
-### ✅ Latency Logging
-- Each order’s round-trip latency is calculated in milliseconds and appended to `latency_log.txt`.
+The system is implemented in **C++** without using any third-party libraries.
 
 ---
 
-## 🔧 How to Compile & Run
+##  Assumptions
 
-### Compilation (Linux/macOS/Windows with g++):
+1. The **upstream system** and **exchange communication** (TCP/shared memory) is abstracted away. We simulate order flow via function calls.
+2. The **system clock is assumed to be set to IST**, and logon/logoff are based on system local time.
+3. Only orders that are **still in the queue** can be modified or canceled.
+4. Modify only updates `price` and `qty`, and retains the original position in the queue.
+5. If Modify/Cancel is received for an order not in queue (already sent), it is ignored.
+6. The `tick()` function simulates time-based flushing every second.
+7. The system is expected to run 24x7, but sends orders only within the configured window.
+
+---
+
+##  Design Decisions
+
+- Used `std::queue<uint64_t>` to maintain **FIFO ordering** of queued order IDs.
+- Used `std::unordered_map<uint64_t, OrderRequest>` for **O(1)** lookup for Modify/Cancel logic.
+- Thread safety is ensured using `std::mutex`.
+- The latency log is written to `latency_log.txt` in append mode.
+- The system uses a **manual tick** to simulate 1-second intervals for sending queued orders.
+
+---
+
+##  Components
+
+- `OrderManagement.h`: Class declaration and core data structures.
+- `OrderManagement.cpp`: Core logic of the order management engine.
+- `main.cpp`: Test driver to simulate sample order flow.
+
+---
+
+##  How to Run
+
 ```bash
-g++ -std=c++17 main.cpp OrderManagement.cpp -o order_mgmt
-```
 
+g++ -std=c++17 OrderManagement.cpp main.cpp -o order_mgmt
+```
 ```bash
 ./order_mgmt
 ```
+
